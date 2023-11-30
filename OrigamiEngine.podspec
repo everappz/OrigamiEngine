@@ -45,7 +45,7 @@ Pod::Spec.new do |s|
 			  '"$(PODS_ROOT)/OrigamiEngine/Audio-Frameworks/flac-src/include/share/grabbag/"',
 			  '"$(PODS_ROOT)/OrigamiEngine/Audio-Frameworks/flac-src/include/test_libs_common/"',
               '"$(PODS_ROOT)/OrigamiEngine/Audio-Frameworks/libogg-src/include/ogg"',
-			  '"$(PODS_ROOT)/OrigamiEngine/Audio-Frameworks/flac-src/src/libFLAC/include/private"'
+			  '"$(PODS_ROOT)/OrigamiEngine/Audio-Frameworks/flac-src/src/libFLAC/include/private"',
 			  '"$(PODS_ROOT)/OrigamiEngine/Audio-Frameworks/flac-src/src/libFLAC/include/protected"'
           ].join(' ') }
   end
