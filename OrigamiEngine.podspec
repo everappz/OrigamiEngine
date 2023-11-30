@@ -29,8 +29,10 @@ Pod::Spec.new do |s|
       # flac.osx.preserve_paths    = 'Audio-Frameworks/bin/flac/Flac_OSX/FLAC.framework'
       # flac.osx.xcconfig          = { 'FRAMEWORK_SEARCH_PATHS' => '"$(PODS_ROOT)/OrigamiEngine/Audio-Frameworks/bin/flac/FLAC_OSX"' }
 	  
-	  flac.source_files            = 'OrigamiEngine/Plugins/FlacDecoder.{h,m}', 'Audio-Frameworks/libogg-src/src/bitwise.c', 'Audio-Frameworks/libogg-src/src/framing.c', 'Audio-Frameworks/flac-src/src/libFLAC/bitmath.c', 'Audio-Frameworks/flac-src/src/libFLAC/bitreader.c', 'Audio-Frameworks/flac-src/src/libFLAC/bitwriter.c', 'Audio-Frameworks/flac-src/src/libFLAC/cpu.c', 'Audio-Frameworks/flac-src/src/libFLAC/crc.c', 'Audio-Frameworks/flac-src/src/libFLAC/fixed.c', 'Audio-Frameworks/flac-src/src/libFLAC/float.c', 'Audio-Frameworks/flac-src/src/libFLAC/format.c', 'Audio-Frameworks/flac-src/src/libFLAC/lpc.c', 'Audio-Frameworks/flac-src/src/libFLAC/md5.c', 'Audio-Frameworks/flac-src/src/libFLAC/memory.c', 'Audio-Frameworks/flac-src/src/libFLAC/metadata_iterators.c', 'Audio-Frameworks/flac-src/src/libFLAC/metadata_object.c', 'Audio-Frameworks/flac-src/src/libFLAC/ogg_decoder_aspect.c', 'Audio-Frameworks/flac-src/src/libFLAC/ogg_encoder_aspect.c', 'Audio-Frameworks/flac-src/src/libFLAC/ogg_helper.c', 'Audio-Frameworks/flac-src/src/libFLAC/ogg_mapping.c', 'Audio-Frameworks/flac-src/src/libFLAC/stream_decoder.c', 'Audio-Frameworks/flac-src/src/libFLAC/stream_encoder_framing.c', 'Audio-Frameworks/flac-src/src/libFLAC/stream_encoder.c', 'Audio-Frameworks/flac-src/src/libFLAC/window.c', 'Audio-Frameworks/libogg-src/include/ogg/ogg.h', 'Audio-Frameworks/libogg-src/include/ogg/os_types.h', 'Audio-Frameworks/FLAC/config.h', 'Audio-Frameworks/flac-src/include/FLAC/all.h', 'Audio-Frameworks/flac-src/include/FLAC/assert.h', 'Audio-Frameworks/flac-src/include/FLAC/callback.h', 'Audio-Frameworks/flac-src/include/FLAC/export.h', 'Audio-Frameworks/flac-src/include/FLAC/format.h', 'Audio-Frameworks/flac-src/include/FLAC/metadata.h', 'Audio-Frameworks/flac-src/include/FLAC/ordinals.h', 'Audio-Frameworks/flac-src/include/FLAC/stream_decoder.h', 'Audio-Frameworks/flac-src/include/FLAC/stream_encoder.h'
-  	  flac.library 				   = 'c++'
+	  # flac.source_files            = 'OrigamiEngine/Plugins/FlacDecoder.{h,m}', 'Audio-Frameworks/libogg-src/src/bitwise.c', 'Audio-Frameworks/libogg-src/src/framing.c', 'Audio-Frameworks/flac-src/src/libFLAC/bitmath.c', 'Audio-Frameworks/flac-src/src/libFLAC/bitreader.c', 'Audio-Frameworks/flac-src/src/libFLAC/bitwriter.c', 'Audio-Frameworks/flac-src/src/libFLAC/cpu.c', 'Audio-Frameworks/flac-src/src/libFLAC/crc.c', 'Audio-Frameworks/flac-src/src/libFLAC/fixed.c', 'Audio-Frameworks/flac-src/src/libFLAC/float.c', 'Audio-Frameworks/flac-src/src/libFLAC/format.c', 'Audio-Frameworks/flac-src/src/libFLAC/lpc.c', 'Audio-Frameworks/flac-src/src/libFLAC/md5.c', 'Audio-Frameworks/flac-src/src/libFLAC/memory.c', 'Audio-Frameworks/flac-src/src/libFLAC/metadata_iterators.c', 'Audio-Frameworks/flac-src/src/libFLAC/metadata_object.c', 'Audio-Frameworks/flac-src/src/libFLAC/ogg_decoder_aspect.c', 'Audio-Frameworks/flac-src/src/libFLAC/ogg_encoder_aspect.c', 'Audio-Frameworks/flac-src/src/libFLAC/ogg_helper.c', 'Audio-Frameworks/flac-src/src/libFLAC/ogg_mapping.c', 'Audio-Frameworks/flac-src/src/libFLAC/stream_decoder.c', 'Audio-Frameworks/flac-src/src/libFLAC/stream_encoder_framing.c', 'Audio-Frameworks/flac-src/src/libFLAC/stream_encoder.c', 'Audio-Frameworks/flac-src/src/libFLAC/window.c', 'Audio-Frameworks/libogg-src/include/ogg/ogg.h', 'Audio-Frameworks/libogg-src/include/ogg/os_types.h', 'Audio-Frameworks/FLAC/config.h', 'Audio-Frameworks/flac-src/include/FLAC/all.h', 'Audio-Frameworks/flac-src/include/FLAC/assert.h', 'Audio-Frameworks/flac-src/include/FLAC/callback.h', 'Audio-Frameworks/flac-src/include/FLAC/export.h', 'Audio-Frameworks/flac-src/include/FLAC/format.h', 'Audio-Frameworks/flac-src/include/FLAC/metadata.h', 'Audio-Frameworks/flac-src/include/FLAC/ordinals.h', 'Audio-Frameworks/flac-src/include/FLAC/stream_decoder.h', 'Audio-Frameworks/flac-src/include/FLAC/stream_encoder.h'
+  	  flac.source_files            = 'OrigamiEngine/Plugins/FlacDecoder.{h,m}', 'Audio-Frameworks/libogg-src/**/*.{h,c}', 'Audio-Frameworks/flac-src/src/libFLAC/**/*.{h,c}',
+  	 
+	  flac.library 				   = 'c++'
   	  flac.xcconfig 			   = { 
 	  
 	  'OTHER_LDFLAGS' => '-ObjC',
@@ -39,11 +41,11 @@ Pod::Spec.new do |s|
 	  'CLANG_CXX_LANGUAGE_STANDARD' => 'gnu++14',
 	  'CLANG_CXX_LIBRARY' => 'libc++',
 	  'HEADER_SEARCH_PATHS' => [
-			  '"$(PODS_ROOT)/OrigamiEngine/Audio-Frameworks/flac-src/include/FLAC/"',
-			  '"$(PODS_ROOT)/OrigamiEngine/Audio-Frameworks/flac-src/include/FLAC++/"',
-			  '"$(PODS_ROOT)/OrigamiEngine/Audio-Frameworks/flac-src/include/share/"',
-			  '"$(PODS_ROOT)/OrigamiEngine/Audio-Frameworks/flac-src/include/share/grabbag/"',
-			  '"$(PODS_ROOT)/OrigamiEngine/Audio-Frameworks/flac-src/include/test_libs_common/"',
+			  '"$(PODS_ROOT)/OrigamiEngine/Audio-Frameworks/flac-src/include/FLAC"',
+			  '"$(PODS_ROOT)/OrigamiEngine/Audio-Frameworks/flac-src/include/FLAC++"',
+			  '"$(PODS_ROOT)/OrigamiEngine/Audio-Frameworks/flac-src/include/share"',
+			  '"$(PODS_ROOT)/OrigamiEngine/Audio-Frameworks/flac-src/include/share/grabbag"',
+			  '"$(PODS_ROOT)/OrigamiEngine/Audio-Frameworks/flac-src/include/test_libs_common"',
               '"$(PODS_ROOT)/OrigamiEngine/Audio-Frameworks/libogg-src/include/ogg"',
 			  '"$(PODS_ROOT)/OrigamiEngine/Audio-Frameworks/flac-src/src/libFLAC/include/private"',
 			  '"$(PODS_ROOT)/OrigamiEngine/Audio-Frameworks/flac-src/src/libFLAC/include/protected"'
