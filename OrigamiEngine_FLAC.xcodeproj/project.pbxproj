@@ -364,19 +364,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				DSTROOT = /tmp/OrigamiEngine.dst;
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(SRCROOT)/Audio-Frameworks/bin/flac",
-					"$(SRCROOT)/Audio-Frameworks/bin/opusfile",
-					"$(SRCROOT)/Audio-Frameworks/bin/ogg",
-					"$(SRCROOT)/Audio-Frameworks/bin/opus",
-				);
+				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "OrigamiEngine/OrigamiEngine-Prefix.pch";
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
-					"$(SRCROOT)/Audio-Frameworks/bin/opus/include",
+					"$(SRCROOT)/Audio-Frameworks/flac-src/include",
 				);
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -388,19 +382,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				DSTROOT = /tmp/OrigamiEngine.dst;
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(SRCROOT)/Audio-Frameworks/bin/flac",
-					"$(SRCROOT)/Audio-Frameworks/bin/opusfile",
-					"$(SRCROOT)/Audio-Frameworks/bin/ogg",
-					"$(SRCROOT)/Audio-Frameworks/bin/opus",
-				);
+				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "OrigamiEngine/OrigamiEngine-Prefix.pch";
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
-					"$(SRCROOT)/Audio-Frameworks/bin/opus/include",
+					"$(SRCROOT)/Audio-Frameworks/flac-src/include",
 				);
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
