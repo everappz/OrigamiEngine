@@ -332,6 +332,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				"IPHONEOS_DEPLOYMENT_TARGET[sdk=macosx*]" = 13.1;
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
+				OTHER_CFLAGS = "";
 				SDKROOT = iphoneos;
 			};
 			name = Debug;
@@ -355,6 +356,10 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				"IPHONEOS_DEPLOYMENT_TARGET[sdk=macosx*]" = 13.1;
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
+				OTHER_CFLAGS = (
+					"-DNDEBUG",
+					"-DNS_BLOCK_ASSERTIONS=1",
+				);
 				SDKROOT = iphoneos;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -389,6 +394,10 @@
 					"$(inherited)",
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
 					"$(SRCROOT)/Audio-Frameworks/flac-src/include",
+				);
+				OTHER_CFLAGS = (
+					"-DNDEBUG",
+					"-DNS_BLOCK_ASSERTIONS=1",
 				);
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
