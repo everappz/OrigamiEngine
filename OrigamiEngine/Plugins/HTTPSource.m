@@ -22,7 +22,8 @@
 // THE SOFTWARE.
 
 #import "HTTPSource.h"
-@interface HTTPSource () {
+@interface HTTPSource () <NSURLSessionDelegate, NSURLSessionDataDelegate>
+{
     long _byteCount;
     long _bytesRead;
     long long _bytesExpected;
@@ -31,9 +32,12 @@
 
     BOOL _connectionDidFail;
 }
-@property (retain, nonatomic) NSURLConnection *urlConnection;
+
 @property (retain, nonatomic) NSMutableURLRequest *request;
 @property (retain, nonatomic) NSFileHandle *fileHandle;
+@property (retain, nonatomic) NSURLSession *session;
+@property (retain, nonatomic) NSURLSessionTask *sessionTask;
+
 @end
 
 @implementation HTTPSource
@@ -44,7 +48,8 @@ const NSTimeInterval readTimeout = 1.0;
     [self close];
     [_fileHandle closeFile];
     [_fileHandle release];
-    [_urlConnection release];
+    [_session release];
+    [_sessionTask release];
     [_request release];
 
     [super dealloc];
@@ -68,19 +73,19 @@ const NSTimeInterval readTimeout = 1.0;
     self.request = [NSMutableURLRequest requestWithURL:url];
     [self.request addValue:@"identity" forHTTPHeaderField:@"Accept-Encoding"];
 
-    NSURLConnection *connection = [[NSURLConnection alloc] initWithRequest:_request
-                                                                  delegate:self
-                                                          startImmediately:NO];
-    self.urlConnection = connection;
-    [connection release];
+    NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
+    configuration.requestCachePolicy = NSURLRequestReloadIgnoringLocalCacheData;
+    configuration.allowsCellularAccess = YES;
+    configuration.timeoutIntervalForRequest = 30.0;
+    configuration.HTTPMaximumConnectionsPerHost = 5;
 
-    if ([NSThread isMainThread]) {
-        [_urlConnection start];
-    } else { //fix nsurlconnection delegate
-        dispatch_sync(dispatch_get_main_queue(), ^{
-            [_urlConnection start];
-        });
-    }
+    NSOperationQueue *delegateQueue = [[NSOperationQueue alloc] init];
+    delegateQueue.maxConcurrentOperationCount = 1;
+    self.session = [NSURLSession sessionWithConfiguration:configuration delegate:self delegateQueue:delegateQueue];
+    [delegateQueue release];
+    
+    self.sessionTask = [self.session dataTaskWithRequest:self.request];
+    [self.sessionTask resume];
 
     _bytesExpected = 0;
     _bytesRead    = 0;
@@ -147,7 +152,12 @@ const NSTimeInterval readTimeout = 1.0;
 }
 
 - (void)close {
-    [_urlConnection cancel];
+    [_sessionTask cancel];
+    [_sessionTask release];
+    _sessionTask = nil;
+    [_session invalidateAndCancel];
+    [_session release];
+    _session = nil;
 }
 
 #pragma mark - private
@@ -191,19 +201,60 @@ const NSTimeInterval readTimeout = 1.0;
     self.fileHandle = [NSFileHandle fileHandleForUpdatingAtPath:filePath];
 }
 
-#pragma mark - NSURLConnection delegate
+#pragma mark - NSURLSession delegate
 
-- (void)connection:(NSURLConnection *)connection didReceiveResponse:(NSURLResponse *)response {
-    _bytesExpected = response.expectedContentLength;
+- (void)URLSession:(NSURLSession *)session didBecomeInvalidWithError:(nullable NSError *)error {
+    if (session != _session) {
+        return;
+    }
+    
     dispatch_semaphore_signal(_downloadingSemaphore);
+    _connectionDidFail = YES;
+}
 
-    if ([_fileHandle seekToEndOfFile] == _bytesExpected) {
-        [_urlConnection cancel];
-        _byteCount = (long)_bytesExpected;
+- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(nullable NSError *)error {
+    if (task != _sessionTask) {
+        return;
+    }
+    
+    dispatch_semaphore_signal(_downloadingSemaphore);
+    if (error != nil) {
+        _connectionDidFail = YES;
     }
 }
 
-- (void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data {
+- (void)URLSession:(NSURLSession *)session
+          dataTask:(NSURLSessionDataTask *)dataTask
+didReceiveResponse:(NSURLResponse *)response
+ completionHandler:(void (^)(NSURLSessionResponseDisposition disposition))completionHandler
+{
+    if (dataTask != _sessionTask) {
+        return;
+    }
+    
+    _bytesExpected = response.expectedContentLength;
+    dispatch_semaphore_signal(_downloadingSemaphore);
+    
+    NSURLSessionResponseDisposition disposition = NSURLSessionResponseAllow;
+
+    if ([_fileHandle seekToEndOfFile] == _bytesExpected) {
+        disposition = NSURLSessionResponseCancel;
+        _byteCount = (long)_bytesExpected;
+    }
+    
+    if (completionHandler) {
+        completionHandler(disposition);
+    }
+}
+
+- (void)URLSession:(NSURLSession *)session
+          dataTask:(NSURLSessionDataTask *)dataTask
+    didReceiveData:(NSData *)data
+{
+    if (dataTask != _sessionTask) {
+        return;
+    }
+    
     if(_byteCount >= _bytesWaitingFromCache) {
         dispatch_semaphore_signal(_downloadingSemaphore);
     }
@@ -217,11 +268,6 @@ const NSTimeInterval readTimeout = 1.0;
             _byteCount += data.length;
         });
     }
-}
-
-- (void)connection:(NSURLConnection *)connection didFailWithError:(NSError *)error {
-    dispatch_semaphore_signal(_downloadingSemaphore);
-    _connectionDidFail = YES;
 }
 
 @end
