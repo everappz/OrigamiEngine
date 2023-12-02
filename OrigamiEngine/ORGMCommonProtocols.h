@@ -209,4 +209,10 @@ typedef enum : NSInteger {
  Closes decoder and corresponding source, deallocates unnecessary resources.
  */
 - (void)close;
+
+/**
+ Opened source.
+ */
+- (id<ORGMSource>)source;
+
 @end

@@ -137,6 +137,10 @@ const int ID3V1_SIZE = 128;
     [_source close];
 }
 
+-(id<ORGMSource>)source{
+    return _source;
+}
+
 #pragma mark - private
 
 - (BOOL)readInfoFromExtAudioFileRef {
