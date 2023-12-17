@@ -85,7 +85,9 @@ const NSTimeInterval readTimeout = 1.0;
     [delegateQueue release];
     
     self.sessionTask = [self.session dataTaskWithRequest:self.request];
-    [self.sessionTask resume];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self.sessionTask resume];
+    });
 
     _bytesExpected = 0;
     _bytesRead    = 0;
@@ -132,7 +134,9 @@ const NSTimeInterval readTimeout = 1.0;
     while(_byteCount < _bytesRead + amount) {
         if (_connectionDidFail) return 0;
         _bytesWaitingFromCache = _bytesRead + amount;
-        dispatch_semaphore_wait(_downloadingSemaphore, dispatch_time(DISPATCH_TIME_NOW, 0.1 * NSEC_PER_SEC));
+        if (_downloadingSemaphore != NULL) {
+            dispatch_semaphore_wait(_downloadingSemaphore, dispatch_time(DISPATCH_TIME_NOW, 0.1 * NSEC_PER_SEC));
+        }
     }
 
     int result = 0;
@@ -208,7 +212,10 @@ const NSTimeInterval readTimeout = 1.0;
         return;
     }
     
-    dispatch_semaphore_signal(_downloadingSemaphore);
+    if (_downloadingSemaphore != NULL) {
+        dispatch_semaphore_signal(_downloadingSemaphore);
+    }
+    
     _connectionDidFail = YES;
 }
 
@@ -217,7 +224,10 @@ const NSTimeInterval readTimeout = 1.0;
         return;
     }
     
-    dispatch_semaphore_signal(_downloadingSemaphore);
+    if (_downloadingSemaphore != NULL) {
+        dispatch_semaphore_signal(_downloadingSemaphore);
+    }
+    
     if (error != nil) {
         _connectionDidFail = YES;
     }
@@ -233,7 +243,10 @@ didReceiveResponse:(NSURLResponse *)response
     }
     
     _bytesExpected = response.expectedContentLength;
-    dispatch_semaphore_signal(_downloadingSemaphore);
+    
+    if (_downloadingSemaphore != NULL) {
+        dispatch_semaphore_signal(_downloadingSemaphore);
+    }
     
     NSURLSessionResponseDisposition disposition = NSURLSessionResponseAllow;
 
@@ -256,7 +269,9 @@ didReceiveResponse:(NSURLResponse *)response
     }
     
     if(_byteCount >= _bytesWaitingFromCache) {
-        dispatch_semaphore_signal(_downloadingSemaphore);
+        if (_downloadingSemaphore != NULL) {
+            dispatch_semaphore_signal(_downloadingSemaphore);
+        }
     }
 
     if (data && _fileHandle) {
