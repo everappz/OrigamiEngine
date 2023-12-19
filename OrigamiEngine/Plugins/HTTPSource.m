@@ -149,10 +149,10 @@ const NSTimeInterval readTimeout = 1.0;
 }
 
 - (void)close {
-    [_sessionTask cancel];
-    _sessionTask = nil;
-    [_session invalidateAndCancel];
-    _session = nil;
+    [self.sessionTask cancel];
+    self.sessionTask = nil;
+    [self.session invalidateAndCancel];
+    self.session = nil;
     [self unprepareCache];
 }
 
