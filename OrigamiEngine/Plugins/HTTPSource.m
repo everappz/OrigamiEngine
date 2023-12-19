@@ -33,6 +33,7 @@
     BOOL _connectionDidFail;
 }
 
+@property (retain, nonatomic) NSString *cachedFilePath;
 @property (retain, nonatomic) NSMutableURLRequest *request;
 @property (retain, nonatomic) NSFileHandle *fileHandle;
 @property (retain, nonatomic) NSURLSession *session;
@@ -46,6 +47,8 @@ const NSTimeInterval readTimeout = 1.0;
 
 - (void)dealloc {
     [self close];
+    [self cleanCache];
+    [_cachedFilePath release];
     [_fileHandle closeFile];
     [_fileHandle release];
     [_session release];
@@ -202,7 +205,15 @@ const NSTimeInterval readTimeout = 1.0;
         }
     }
 
+    self.cachedFilePath = filePath;
     self.fileHandle = [NSFileHandle fileHandleForUpdatingAtPath:filePath];
+}
+
+- (void)cleanCache {
+    if (self.cachedFilePath.length > 0) {
+        @try{[[NSFileManager defaultManager] removeItemAtPath:self.cachedFilePath error:nil];}
+        @catch(NSException *exc){}
+    }
 }
 
 #pragma mark - NSURLSession delegate
