@@ -33,11 +33,11 @@
     BOOL _connectionDidFail;
 }
 
-@property (retain, nonatomic) NSString *cachedFilePath;
-@property (retain, nonatomic) NSMutableURLRequest *request;
-@property (retain, nonatomic) NSFileHandle *fileHandle;
-@property (retain, nonatomic) NSURLSession *session;
-@property (retain, nonatomic) NSURLSessionTask *sessionTask;
+@property (copy, nonatomic) NSString *cachedFilePath;
+@property (strong, nonatomic) NSMutableURLRequest *request;
+@property (strong, nonatomic) NSFileHandle *fileHandle;
+@property (strong, nonatomic) NSURLSession *session;
+@property (strong, nonatomic) NSURLSessionTask *sessionTask;
 
 @end
 
@@ -47,15 +47,6 @@ const NSTimeInterval readTimeout = 1.0;
 
 - (void)dealloc {
     [self close];
-    [self cleanCache];
-    [_cachedFilePath release];
-    [_fileHandle closeFile];
-    [_fileHandle release];
-    [_session release];
-    [_sessionTask release];
-    [_request release];
-
-    [super dealloc];
 }
 
 #pragma mark - ORGMSource
@@ -85,7 +76,6 @@ const NSTimeInterval readTimeout = 1.0;
     NSOperationQueue *delegateQueue = [[NSOperationQueue alloc] init];
     delegateQueue.maxConcurrentOperationCount = 1;
     self.session = [NSURLSession sessionWithConfiguration:configuration delegate:self delegateQueue:delegateQueue];
-    [delegateQueue release];
     
     self.sessionTask = [self.session dataTaskWithRequest:self.request];
     dispatch_async(dispatch_get_main_queue(), ^{
@@ -160,11 +150,10 @@ const NSTimeInterval readTimeout = 1.0;
 
 - (void)close {
     [_sessionTask cancel];
-    [_sessionTask release];
     _sessionTask = nil;
     [_session invalidateAndCancel];
-    [_session release];
     _session = nil;
+    [self unprepareCache];
 }
 
 #pragma mark - private
@@ -209,10 +198,16 @@ const NSTimeInterval readTimeout = 1.0;
     self.fileHandle = [NSFileHandle fileHandleForUpdatingAtPath:filePath];
 }
 
-- (void)cleanCache {
+- (void)unprepareCache {
+    if (self.fileHandle) {
+        [self.fileHandle closeFile];
+        self.fileHandle = nil;
+    }
+    
     if (self.cachedFilePath.length > 0) {
         @try{[[NSFileManager defaultManager] removeItemAtPath:self.cachedFilePath error:nil];}
         @catch(NSException *exc){}
+        self.cachedFilePath = nil;
     }
 }
 
