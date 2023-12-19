@@ -22,22 +22,20 @@
 // THE SOFTWARE.
 
 #import "HTTPSource.h"
+
 @interface HTTPSource () <NSURLSessionDelegate, NSURLSessionDataDelegate>
-{
-    long _byteCount;
-    long _bytesRead;
-    long long _bytesExpected;
-    long long _bytesWaitingFromCache;
-    dispatch_semaphore_t _downloadingSemaphore;
 
-    BOOL _connectionDidFail;
-}
-
-@property (copy, nonatomic) NSString *cachedFilePath;
+@property (assign, nonatomic) long byteCount;
+@property (assign, nonatomic) long bytesRead;
+@property (assign, nonatomic) long long bytesExpected;
+@property (assign, nonatomic) long long bytesWaitingFromCache;
+@property (assign, nonatomic) BOOL connectionDidFail;
+@property (strong, nonatomic) dispatch_semaphore_t downloadingSemaphore;
 @property (strong, nonatomic) NSMutableURLRequest *request;
 @property (strong, nonatomic) NSFileHandle *fileHandle;
 @property (strong, nonatomic) NSURLSession *session;
 @property (strong, nonatomic) NSURLSessionTask *sessionTask;
+@property (copy, nonatomic) NSString *cachedFilePath;
 
 @end
 
@@ -56,44 +54,43 @@ const NSTimeInterval readTimeout = 1.0;
 }
 
 - (NSURL *)url {
-    return [_request URL];
+    return [self.request URL];
 }
 
 - (long)size {
-    return (long)_bytesExpected;
+    return (long)self.bytesExpected;
 }
 
 - (BOOL)open:(NSURL *)url {
     self.request = [NSMutableURLRequest requestWithURL:url];
     [self.request addValue:@"identity" forHTTPHeaderField:@"Accept-Encoding"];
-
+    
     NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
     configuration.requestCachePolicy = NSURLRequestReloadIgnoringLocalCacheData;
     configuration.allowsCellularAccess = YES;
     configuration.timeoutIntervalForRequest = 30.0;
     configuration.HTTPMaximumConnectionsPerHost = 5;
-
+    
     NSOperationQueue *delegateQueue = [[NSOperationQueue alloc] init];
     delegateQueue.maxConcurrentOperationCount = 1;
     self.session = [NSURLSession sessionWithConfiguration:configuration delegate:self delegateQueue:delegateQueue];
     
     self.sessionTask = [self.session dataTaskWithRequest:self.request];
-    dispatch_async(dispatch_get_main_queue(), ^{
+    dispatch_async([HTTPSource cachingQueue], ^{
         [self.sessionTask resume];
     });
-
-    _bytesExpected = 0;
-    _bytesRead    = 0;
-    _byteCount     = 0;
-    _connectionDidFail = NO;
-
-    [self prepareCache:[NSString stringWithFormat:@"%lx.%@",
-                        (unsigned long)[[url absoluteString] hash],
-                        url.pathExtension]];
-
-    _downloadingSemaphore = dispatch_semaphore_create(0);
-    dispatch_semaphore_wait(_downloadingSemaphore, DISPATCH_TIME_FOREVER);
-
+    
+    self.bytesExpected = 0;
+    self.bytesRead = 0;
+    self.byteCount = 0;
+    self.connectionDidFail = NO;
+    
+    NSString *fileName = [NSString stringWithFormat:@"%@.%@",[NSUUID UUID].UUIDString,url.pathExtension];
+    [self prepareCache:fileName];
+    
+    self.downloadingSemaphore = dispatch_semaphore_create(0);
+    dispatch_semaphore_wait(self.downloadingSemaphore, DISPATCH_TIME_FOREVER);
+    
     return YES;
 }
 
@@ -104,47 +101,58 @@ const NSTimeInterval readTimeout = 1.0;
 - (BOOL)seek:(long)position whence:(int)whence {
     switch (whence) {
         case SEEK_SET:
-            _bytesRead = position;
+            self.bytesRead = position;
             break;
         case SEEK_CUR:
-            _bytesRead += position;
+            self.bytesRead += position;
             break;
         case SEEK_END:
-            _bytesRead = (long)_bytesExpected - position;
+            self.bytesRead = (long)self.bytesExpected - position;
             break;
     }
     return YES;
 }
 
 - (long)tell {
-    return _bytesRead;
+    return self.bytesRead;
 }
 
 - (int)read:(void *)buffer amount:(int)amount {
-    if (_bytesRead + amount > _bytesExpected)
+    if (self.bytesRead + amount > self.bytesExpected) {
         return 0;
-
-    while(_byteCount < _bytesRead + amount) {
-        if (_connectionDidFail) return 0;
-        _bytesWaitingFromCache = _bytesRead + amount;
-        if (_downloadingSemaphore != NULL) {
-            dispatch_semaphore_wait(_downloadingSemaphore, dispatch_time(DISPATCH_TIME_NOW, 0.1 * NSEC_PER_SEC));
+    }
+    
+    while (self.byteCount < self.bytesRead + amount) {
+        if (self.connectionDidFail) {
+            return 0;
+        }
+        
+        self.bytesWaitingFromCache = self.bytesRead + amount;
+        
+        if (self.downloadingSemaphore != NULL) {
+            dispatch_semaphore_wait(self.downloadingSemaphore, dispatch_time(DISPATCH_TIME_NOW, 0.1 * NSEC_PER_SEC));
         }
     }
-
+    
     int result = 0;
+    
     @autoreleasepool {
         NSData *data = nil;
-        @synchronized(_fileHandle) {
-            [_fileHandle seekToFileOffset:_bytesRead];
-            data = [_fileHandle readDataOfLength:amount];
+        @try {
+            @synchronized(self.fileHandle) {
+                [self.fileHandle seekToFileOffset:self.bytesRead];
+                data = [self.fileHandle readDataOfLength:amount];
+            }
+        } @catch (NSException *exception) {
+            NSLog(@"exc: %@",exception);
         }
+        
         [data getBytes:buffer length:data.length];
-        _bytesRead += data.length;
-
+        self.bytesRead += data.length;
+        
         result = data.length;
     }
-
+    
     return result;
 }
 
@@ -159,19 +167,20 @@ const NSTimeInterval readTimeout = 1.0;
 #pragma mark - private
 
 + (dispatch_queue_t)cachingQueue {
-    static dispatch_queue_t _cachingQueue;
+    static dispatch_queue_t cachingQueue;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        _cachingQueue = dispatch_queue_create("com.origami.httpcache",
-                                              DISPATCH_QUEUE_SERIAL);
+        cachingQueue = dispatch_queue_create("com.origami.httpcache", DISPATCH_QUEUE_SERIAL);
     });
-    return _cachingQueue;
+    return cachingQueue;
 }
 
-- (void)prepareCache:(NSString*)fileName {
+- (void)prepareCache:(NSString *)fileName {
     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
     NSString *dataPath = [[paths objectAtIndex:0] stringByAppendingPathComponent:@"StreamCache"];
+    
     NSFileManager *defaultFileManger = [NSFileManager defaultManager];
+    
     if (![defaultFileManger fileExistsAtPath:dataPath]) {
         if (![defaultFileManger createDirectoryAtPath:dataPath
                           withIntermediateDirectories:NO
@@ -182,8 +191,9 @@ const NSTimeInterval readTimeout = 1.0;
                                          userInfo:nil];
         }
     }
-
+    
     NSString *filePath = [dataPath stringByAppendingPathComponent:fileName];
+    
     if (![defaultFileManger fileExistsAtPath:filePath]) {
         if (![defaultFileManger createFileAtPath:filePath
                                         contents:nil
@@ -193,7 +203,7 @@ const NSTimeInterval readTimeout = 1.0;
                                          userInfo:nil];
         }
     }
-
+    
     self.cachedFilePath = filePath;
     self.fileHandle = [NSFileHandle fileHandleForUpdatingAtPath:filePath];
 }
@@ -214,28 +224,28 @@ const NSTimeInterval readTimeout = 1.0;
 #pragma mark - NSURLSession delegate
 
 - (void)URLSession:(NSURLSession *)session didBecomeInvalidWithError:(nullable NSError *)error {
-    if (session != _session) {
+    if (session != self.session) {
         return;
     }
     
-    if (_downloadingSemaphore != NULL) {
-        dispatch_semaphore_signal(_downloadingSemaphore);
+    if (self.downloadingSemaphore != NULL) {
+        dispatch_semaphore_signal(self.downloadingSemaphore);
     }
     
-    _connectionDidFail = YES;
+    self.connectionDidFail = YES;
 }
 
 - (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(nullable NSError *)error {
-    if (task != _sessionTask) {
+    if (task != self.sessionTask) {
         return;
     }
     
-    if (_downloadingSemaphore != NULL) {
-        dispatch_semaphore_signal(_downloadingSemaphore);
+    if (self.downloadingSemaphore != NULL) {
+        dispatch_semaphore_signal(self.downloadingSemaphore);
     }
     
     if (error != nil) {
-        _connectionDidFail = YES;
+        self.connectionDidFail = YES;
     }
 }
 
@@ -244,25 +254,21 @@ const NSTimeInterval readTimeout = 1.0;
 didReceiveResponse:(NSURLResponse *)response
  completionHandler:(void (^)(NSURLSessionResponseDisposition disposition))completionHandler
 {
-    if (dataTask != _sessionTask) {
+    if (dataTask != self.sessionTask) {
+        if (completionHandler) {
+            completionHandler(NSURLSessionResponseAllow);
+        }
         return;
     }
     
-    _bytesExpected = response.expectedContentLength;
+    self.bytesExpected = response.expectedContentLength;
     
-    if (_downloadingSemaphore != NULL) {
-        dispatch_semaphore_signal(_downloadingSemaphore);
-    }
-    
-    NSURLSessionResponseDisposition disposition = NSURLSessionResponseAllow;
-
-    if ([_fileHandle seekToEndOfFile] == _bytesExpected) {
-        disposition = NSURLSessionResponseCancel;
-        _byteCount = (long)_bytesExpected;
+    if (self.downloadingSemaphore != NULL) {
+        dispatch_semaphore_signal(self.downloadingSemaphore);
     }
     
     if (completionHandler) {
-        completionHandler(disposition);
+        completionHandler(NSURLSessionResponseAllow);
     }
 }
 
@@ -270,23 +276,27 @@ didReceiveResponse:(NSURLResponse *)response
           dataTask:(NSURLSessionDataTask *)dataTask
     didReceiveData:(NSData *)data
 {
-    if (dataTask != _sessionTask) {
+    if (dataTask != self.sessionTask) {
         return;
     }
     
-    if(_byteCount >= _bytesWaitingFromCache) {
-        if (_downloadingSemaphore != NULL) {
-            dispatch_semaphore_signal(_downloadingSemaphore);
+    if (self.byteCount >= self.bytesWaitingFromCache) {
+        if (self.downloadingSemaphore != NULL) {
+            dispatch_semaphore_signal(self.downloadingSemaphore);
         }
     }
-
-    if (data && _fileHandle) {
+    
+    if (data && self.fileHandle) {
         dispatch_async([HTTPSource cachingQueue], ^{
-            @synchronized(_fileHandle) {
-                [_fileHandle seekToFileOffset:_byteCount];
-                [_fileHandle writeData:data];
+            @try {
+                @synchronized(self.fileHandle) {
+                    [self.fileHandle seekToFileOffset:self.byteCount];
+                    [self.fileHandle writeData:data];
+                }
+                self.byteCount += data.length;
+            } @catch (NSException *exception) {
+                NSLog(@"exc: %@",exception);
             }
-            _byteCount += data.length;
         });
     }
 }
