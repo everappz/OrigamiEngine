@@ -209,7 +209,7 @@ const NSTimeInterval readTimeout = 1.0;
 }
 
 - (void)unprepareCache {
-    if (self.fileHandle) {
+    @synchronized (self.fileHandle) {
         [self.fileHandle closeFile];
         self.fileHandle = nil;
     }
@@ -286,19 +286,21 @@ didReceiveResponse:(NSURLResponse *)response
         }
     }
     
-    if (data && self.fileHandle) {
-        dispatch_async([HTTPSource cachingQueue], ^{
-            @try {
-                @synchronized(self.fileHandle) {
-                    [self.fileHandle seekToFileOffset:self.byteCount];
-                    [self.fileHandle writeData:data];
-                }
-                self.byteCount += data.length;
-            } @catch (NSException *exception) {
-                NSLog(@"exc: %@",exception);
-            }
-        });
+    if (data.length == 0 || self.fileHandle == nil) {
+        return;
     }
+    
+    dispatch_async([HTTPSource cachingQueue], ^{
+        @try {
+            @synchronized(self.fileHandle) {
+                [self.fileHandle seekToFileOffset:self.byteCount];
+                [self.fileHandle writeData:data];
+            }
+            self.byteCount += data.length;
+        } @catch (NSException *exception) {
+            NSLog(@"exc: %@",exception);
+        }
+    });
 }
 
 @end
