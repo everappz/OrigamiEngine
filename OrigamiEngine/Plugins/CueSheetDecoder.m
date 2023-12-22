@@ -27,14 +27,15 @@
 #import "ORGMPluginManager.h"
 
 @interface CueSheetDecoder () {
-	long framePosition;
+    id<ORGMSource> _source;
+    id<ORGMDecoder> _decoder;
+    CueSheet *_cuesheet;
     
-	long trackStart;
-	long trackEnd;		
+	long _framePosition;
+	long _trackStart;
+	long _trackEnd;		
 }
-@property (strong, nonatomic) id<ORGMSource> source;
-@property (strong, nonatomic) id<ORGMDecoder> decoder;
-@property (strong, nonatomic) CueSheet *cuesheet;
+
 @end
 
 @implementation CueSheetDecoder
@@ -51,7 +52,7 @@
 
 - (NSDictionary *)properties {
 	NSMutableDictionary *properties = [[_decoder properties] mutableCopy];
-	[properties setObject:[NSNumber numberWithLong:(trackEnd - trackStart)]
+	[properties setObject:[NSNumber numberWithLong:(_trackEnd - _trackStart)]
                    forKey:@"totalFrames"];
 	return properties;
 }
@@ -73,9 +74,13 @@
     return resultDict;
 }
 
+- (id<ORGMSource>)source {
+    return _source;
+}
+
 - (int)readAudio:(void *)buf frames:(UInt32)frames {
-	if (framePosition + frames > trackEnd) {
-		frames = trackEnd - framePosition;
+	if (_framePosition + frames > _trackEnd) {
+		frames = _trackEnd - _framePosition;
 	}
     
 	if (!frames) {
@@ -83,25 +88,25 @@
 	}
     
 	int n = [_decoder readAudio:buf frames:frames];
-	framePosition += n;
+	_framePosition += n;
 	return n;
 }
 
 - (BOOL)open:(id<ORGMSource>)s {
 	NSURL *url = [s url];
-	self.cuesheet = [[CueSheet alloc] initWithURL:url];
+	_cuesheet = [[CueSheet alloc] initWithURL:url];
 	
     ORGMPluginManager *pluginManager = [ORGMPluginManager sharedManager];
 	for (int i = 0; i < _cuesheet.tracks.count; i++) {
         CueSheetTrack *track = [_cuesheet.tracks objectAtIndex:i];
 		if ([track.track isEqualToString:[url fragment]]) {
-			self.source = [pluginManager sourceForURL:track.url error:nil];
+			_source = [pluginManager sourceForURL:track.url error:nil];
 
 			if (![_source open:track.url]) {
 				return NO;
 			}
 
-			self.decoder = [pluginManager decoderForSource:_source error:nil];
+			_decoder = [pluginManager decoderForSource:_source error:nil];
 			if (![_decoder open:_source]) {
 				return NO;
 			}
@@ -113,12 +118,12 @@
 
 			NSDictionary *properties = [_decoder properties];
 			float sampleRate = [[properties objectForKey:@"sampleRate"] floatValue];
-			trackStart = [track time] * sampleRate;
+			_trackStart = [track time] * sampleRate;
 
 			if (nextTrack && [nextTrack.url isEqual:track.url]) {
-				trackEnd = [nextTrack time] * sampleRate;
+				_trackEnd = [nextTrack time] * sampleRate;
 			} else {
-				trackEnd = [[properties objectForKey:@"totalFrames"] doubleValue];
+				_trackEnd = [[properties objectForKey:@"totalFrames"] doubleValue];
 			}
 			[self seek: 0];
 
@@ -130,13 +135,13 @@
 }
 
 - (long)seek:(long)frame {
-	if (frame > trackEnd - trackStart) {
+	if (frame > _trackEnd - _trackStart) {
 		return -1;
 	}
 	
-	frame += trackStart;
-	framePosition = [_decoder seek:frame];
-	return framePosition;
+	frame += _trackStart;
+	_framePosition = [_decoder seek:frame];
+	return _framePosition;
 }
 
 - (void)close {

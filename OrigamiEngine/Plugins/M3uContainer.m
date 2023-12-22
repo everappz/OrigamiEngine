@@ -26,6 +26,7 @@
 @implementation M3uContainer
 
 #pragma mark - ORMGContainer
+
 + (NSArray *)fileTypes {
 	return [NSArray arrayWithObject:@"m3u"];
 }

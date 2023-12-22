@@ -25,8 +25,8 @@
 
 @interface FileSource () {
     FILE *_fd;
+    NSURL *_url;
 }
-@property (strong, nonatomic) NSURL *url;
 @end
 
 @implementation FileSource
@@ -36,6 +36,7 @@
 }
 
 #pragma mark - ORGMSource
+
 + (NSString *)scheme {
     return @"file";
 }
@@ -53,7 +54,7 @@
 }
 
 - (BOOL)open:(NSURL *)url {
-	[self setUrl:url];
+    _url = url;
 	_fd = fopen([[url path] UTF8String], "r");
 	return (_fd != NULL);
 }
@@ -80,7 +81,5 @@
 		_fd = NULL;
 	}
 }
-
-#pragma mark - private
 
 @end

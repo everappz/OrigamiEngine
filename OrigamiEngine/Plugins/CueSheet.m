@@ -26,12 +26,14 @@
 #import "ORGMCommonProtocols.h"
 
 @interface CueSheet ()
+
 @property (copy, nonatomic) NSArray *tracks;
+
 @end
 
 @implementation CueSheet
 
-#pragma mark - public
+#pragma mark - Public
 
 - (id)initWithURL:(NSURL *)url {
 	self = [super init];
@@ -42,7 +44,8 @@
 	return self;
 }
 
-#pragma mark - private
+#pragma mark - Private
+
 - (void)parseFileWithUrl:(NSURL *)url {
 	NSStringEncoding encoding;
 	NSError *error = nil;
