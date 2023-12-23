@@ -343,7 +343,7 @@ const int ID3V1_SIZE = 128;
     
     NSDictionary *tagsDictionary = (__bridge NSDictionary*)piDict;
     
-    NSLog (@"ID3TagDictionary: %@", tagsDictionary);
+    //NSLog (@"ID3TagDictionary: %@", tagsDictionary);
     
     if (tagsDictionary != nil) {
         result = [[NSDictionary alloc] initWithDictionary:tagsDictionary];
