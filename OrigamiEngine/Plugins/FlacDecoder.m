@@ -348,9 +348,15 @@ void MetadataCallback(const FLAC__StreamDecoder *decoder,
     } else if (metadata->type == FLAC__METADATA_TYPE_PICTURE) {
         FlacDecoder *flacDecoder = (__bridge FlacDecoder *)client_data;
         FLAC__StreamMetadata_Picture picture = metadata->data.picture;
-        NSData *picture_data = [NSData dataWithBytes:picture.data
-                                              length:picture.data_length];
-        [flacDecoder->_metadata setObject:picture_data forKey:@"picture"];
+        FLAC__StreamMetadata_Picture_Type pictureType = picture.type;
+        FLAC__StreamMetadata_Picture_Type existingPictureType = (FLAC__StreamMetadata_Picture_Type)[[flacDecoder->_metadata objectForKey:@"picture_type"] integerValue];
+        
+        //do not overwrite front cover picture
+        if (existingPictureType != FLAC__STREAM_METADATA_PICTURE_TYPE_FRONT_COVER) {
+            NSData *picture_data = [NSData dataWithBytes:picture.data length:picture.data_length];
+            [flacDecoder->_metadata setObject:picture_data forKey:@"picture"];
+            [flacDecoder->_metadata setObject:@(pictureType) forKey:@"picture_type"];
+        }
     } else if (metadata->type == FLAC__METADATA_TYPE_STREAMINFO) {
         FlacDecoder *flacDecoder = (__bridge FlacDecoder *)client_data;
 
